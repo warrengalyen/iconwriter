@@ -3,7 +3,11 @@ name = "iconwriter"
 version = "0.1.0"
 authors = ["Warren Galyen <warrengalyen@users.noreply.github.com>"]
 edition = "2018"
-descreption = "A simple solution for generating `.ico` and `.icns` icons. The crate also supports png sequences as an output format."
+description = "A simple solution for generating `.ico` and `.icns` icons. The crate also supports png sequences as an output format."
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://github.com/warrengalyen/iconwriter.git"
+homepage = "https://github.com/warrengalyen/iconwriter"
 
 [dependencies]
 zip = "0.5.8"
