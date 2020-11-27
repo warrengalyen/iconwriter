@@ -1,14 +1,16 @@
-# IconWriter Lib.
+# IconWriter
 [![Crate](https://img.shields.io/crates/v/iconwriter.svg)](https://crates.io/crates/iconwriter)
 [![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rand#rust-version-requirements)
 
 A simple solution for generating `.ico` and `.icns` icons. This crate serves as **IconWriter CLI's** internal library.
 
-## Basic usage
+## Usage
+This crate's API revolves around the concept of binding source images to a set of sizes and resampling configurations. The following example demonstrates this principle:
+
 ```rust
 use iconwriter::prelude::*;
-const n_entrie: usize = 1;
+const N_ENTRIES: usize = 1;
 fn main() {
     // Creating the icon
     let mut icon = Icon::ico(n_entries);
@@ -16,39 +18,106 @@ fn main() {
     let src_image = SourceImage::from_file("img.jpg").unwrap();
     // Configuring the entry
     let opts = IconOptions::new(
-        vec![(32, 32), (64, 64)] /* 32x32 and 64x64 icon */,
+        vec![(32, 32), (64, 64)] /* 32x32 and 64x64 sizes */,
         ResamplingFilter::Linear /* Interpolate the image */,
         Crop::Square             /* Square image */
     );
     // Adding the entry
-    icon.add_entry(opts, &source_image).unwrap();
+   icon.add_entry(opts, &src_image).unwrap();
 }
 ```
 
-It is important to note that although the `Icon` returned by the `Icon::ico`, `Icon::icns`, `Icon::png_sequece` and `Icon::new` methods has the capacity specified, the `Icon` will have zero entries.
+Note that the `capacity` argument in the `Icon::ico`, `Icon::icns`, `Icon::png_sequence` and `Icon::new` methods specifies the expected number of _entries_ in a given `Icon`, **not** the number of _sizes_ (since a single entry can contain multiple sizes).
 
-For an explanation of the difference between length and capacity, see
-[*Capacity and reallocation*](https://doc.rust-lang.org/std/vec/struct.Vec.html#capacity-and-reallocation).
+### Sampling From Multiple Sources
+Let's say you want to customize your icon so that the smaller versions of it are less detailed. **IconWriter** helps you achieve this result by allowing to sample from multiple sources.
 
-## Writing to files
+You can simply combine separate source images by specifying to which entry they should be assigned:
+
+```rust
+use iconwriter::prelude::*;
+const N_ENTRIES: usize = 2;
+
+fn main() {
+    let option = IconOptions::new;
+    let mut icon = Icon::ico(n_entries);
+    // Importing the source images
+    let small = SourceImage::from_file("small.jpg").unwrap();
+    let large = SourceImage::from_file("small.png").unwrap();
+    // Configuring the entries
+    let filter = ResamplingFilter::Nearest;
+    let crop = Crop::Square;
+    let small_opt = option(vec![(16, 16)], filter, crop);
+    let large_opt = option(vec![(32, 32)], filter, crop);
+    // Adding the entries
+    icon.add_entry(small_opt, &small).unwrap();
+    icon.add_entry(large_opt, &large).unwrap();
+}
+```
+
+Note that different `IconOption` do not need to share the same rasampling options (namely the `filter` and `crop` fields) and can even share a common `source` field.
+
+However, different entries cannot share a common `Size` in there `sizes` field. For example, the following program will panic at second call of `icon.add_entry()`:
+
+```rust
+use iconwriter::prelude::*;
+const N_ENTRIES: usize = 2;
+fn main() {
+    let option = IconOptions::new;
+    let mut icon = Icon::ico(n_entries);
+
+        // Importing the source images
+    let src1 = SourceImage::from_file("src1.jpg").unwrap();
+    let src2 = SourceImage::from_file("src2.png").unwrap();
+    // Configuring the entries
+    let filter = ResamplingFilter::Nearest;
+    let crop = Crop::Square;
+    let src1_opt = option(vec![(16, 16)], filter, crop);
+    let src2_opt = option(vec![(16, 16)], filter, crop);
+    // Adding the entries
+    icon.add_entry(src1_opt, &src1).expect("Returns `Ok(())`");
+    icon.add_entry(src2_opt, &src2)
+        .expect("Returns `Err(Error::SizeAlreadyIncluded((16, 16))))`");
+}
+```
+
+## Writing to Files
+Writing to files can be easily done by calling the `Icon::write` method:
+
 ```rust
 use iconwriter::prelude::*;
 use std::fs::File;
-const n_entries: usize = ...;
+/* Const declarations */
 fn main() {
-    let mut icon = Icon::ico(n_entries);
+    let mut icon = Icon::ico(N_ENTRIES);
+
     /* Process the icon */
     if let Ok(&file) = File::create("myfile.ico") {
         match icon.write(file) {
             Ok(()) => println!("File 'myfile.ico' saved!"),
-            Err(_) => println!("An error occured ;-;")
+            Err(_) => println!("An error occurred ;-;")
         }
     }
 }
 ```
 
+## Supported Image Formats
+| Format | Decoding                                           | 
+| ------ | -------------------------------------------------- | 
+| `PNG`  | All supported color types                          | 
+| `JPEG` | Baseline and progressive                           | 
+| `GIF`  | Yes                                                | 
+| `BMP`  | Yes                                                | 
+| `ICO`  | Yes                                                | 
+| `TIFF` | Baseline(no fax support), `LZW`, PackBits          | 
+| `WEBP` | Lossy(Luma channel only)                           | 
+| `PNM ` | `PBM`, `PGM`, `PPM`, standard `PAM`                |
+| `SVG`  | Limited([flat filled shapes only](###svg-support)) |
+
 ## Limitations
-There are two main limitations in this crate: both the `.icns` and `.svg` are not fully supported. Due to the use of external depencies, this crate is not able to fully support the formal specifications of those two file formats.
+There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external depencies, this crate is not able to fully support the formal specifications of those two file formats.
+
+### ICNS Support
 
 However, the coverage provided by these external dependencies should be more than enought for most use cases.
 
@@ -89,6 +158,10 @@ However, the coverage provided by these external dependencies should be more tha
 | `ic13` | 128x128@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 | `ic14` | 256x256@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 
-In regards to SVG support, `iconwriter` uses the `nsvg` crate for rasterizing `.svg` files. According to the authors of the crate, _"`nsvg` does not provide all the functionality of NanoSVG yet. Just the bare minimum to create scaled rasters of SVGs. Like NanoSVG, the rasteriser only renders flat filled shapes. It is not particularly fast or accurate, but it is a simple way to bake vector graphics into textures"_.
+### SVG Support
 
-The author of `iconwriter` is inclined to search for alternatives to `nsvg` if inquered to. Help would be appreciated. 
+**IconWriter** uses the `nsvg` crate for rasterizing `.svg` files. According to the authors of the crate:
+
+> Like NanoSVG, the rasteriser only renders flat filled shapes. It is not particularly fast or accurate, but it is a simple way to bake vector graphics into textures.
+
+The author of `iconwriter` is inclined to search for alternatives to `nsvg` if inquired to. Help would be appreciated. 
