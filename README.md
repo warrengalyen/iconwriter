@@ -1,15 +1,19 @@
 # IconWriter Lib.
+[![Crate](https://img.shields.io/crates/v/iconwriter.svg)](https://crates.io/crates/iconwriter)
+[![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
+[![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rand#rust-version-requirements)
+
 A simple solution for generating `.ico` and `.icns` icons. This crate serves as **IconWriter CLI's** internal library.
 
 ## Basic usage
 ```rust
-use iconwriter::*;
-static n_entrie: usize = 1;
+use iconwriter::prelude::*;
+const n_entrie: usize = 1;
 fn main() {
     // Creating the icon
     let mut icon = Icon::ico(n_entries);
     // Importing the source image
-    let source_image = SourceImage::from_file("myimage.jpg").unwrap();
+    let source_image = SourceImage::from_file("img.jpg").unwrap();
     // Configuring the entry
     let opts = IconOptions::new(
         vec![(32, 32), (64, 64)] /* 32x32 and 64x64 icon */,
@@ -28,15 +32,16 @@ For an explanation of the difference between length and capacity, see
 
 ## Writing to files
 ```rust
-use iconwriter::*;
-static n_entrie: usize = ...;
+use iconwriter::prelude::*;
+use std::fs::File;
+const n_entries: usize = ...;
 fn main() {
     let mut icon = Icon::ico(n_entries);
     /* Process the icon */
     if let Ok(&file) = File::create("myfile.ico") {
         match icon.write(file) {
             Ok(()) => println!("File 'myfile.ico' saved!"),
-            _      => println!("An error occured ;-;")
+            Err(_) => println!("An error occured ;-;")
         }
     }
 }
