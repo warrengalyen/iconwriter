@@ -3,7 +3,7 @@
 [![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rand#rust-version-requirements)
 
-A simple solution for generating `.ico` and `.icns` icons. This crate serves as **IconWriter CLI's** internal library.
+A simple solution for generating `.ico` and `.icns` icons. This crate serves as **[IconWriter CLI's](https://github.com/warrengalyen/iconwriter)** internal library.
 
 ## Supported Image Formats
 | Format | Supported?                                         | 
