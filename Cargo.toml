@@ -12,7 +12,7 @@ readme = "README.md"
 keywords = ["icon", "ico", "icns"]
 
 [dependencies]
-zip = "0.5.8"
+tar = "0.4.30"
 png_encode_mini = "0.1.2"
 nsvg = "0.5.1"
 ico = "0.1.0"
