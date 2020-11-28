@@ -48,7 +48,7 @@ You can simply combine separate source images by specifying to which entry they 
 
 ```rust
 #[macro_use]
-use iconwriter::{self, prelude::*};
+use iconwriter::prelude::*;
 
 fn main() {
     let mut icon = Icon::ico(N_ENTRIES);
@@ -67,7 +67,7 @@ Note that different entries can share a common source image, but they cannot sha
 
 ```rust
 #[macro_use]
-use iconwriter::{self, prelude::*};
+use iconwriter::prelude::*;
 
 const N_ENTRIES: usize = 2;
 fn main() {
@@ -92,7 +92,7 @@ Icons can be rasterized to a series of bitmap imaged with the help of the `Icon:
 
 ```rust
 #[macro_use]
-use iconwriter::{self, prelude::*};
+use iconwriter::prelude::*;
 
 const N_ENTRIES: usize = 1;
 
@@ -120,7 +120,7 @@ Writing to files can be easily done by calling the [`Icon::write`](https://docs.
 
 ```rust
 #[macro_use]
-use iconwriter::{self, prelude::*};
+use iconwriter::prelude::*;
 use std::fs::File;
 
 /* Const declarations */
