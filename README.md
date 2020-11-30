@@ -7,13 +7,13 @@ A simple solution for encoding common icon file formats, such as `.ico` and `.ic
 
 # Overview
 
-An icon stores a collection of small images of different sizes. Individial images within the icon are binded to a source image, which is rescaled to fit a particular size using a resampling filter.
+An icon stores a collection of small images of different sizes. Individual images within the icon are bound to a source image, which is rescaled to fit a particular size using a resampling filter.
 
 Resampling filters are represented by functions that take a source image and a size and return a rescaled raw RGBA buffer. This allows the user of this crate to provide their custom resampling filter. Common resampling filters are provided by the `resample` module.
 
-# Examples
+## Examples
 
-## General Usage
+### General Usage
 
 ```rust
 use iconwriter::*;
@@ -27,7 +27,7 @@ fn main() -> iconwriter::Result<()> {
 }
 ```
 
-## Writing to a File
+### Writing to a File
 ```rust
 use iconwriter::*;
 use std::{io, fs::File};
@@ -42,10 +42,10 @@ fn main() -> io::Result<()> {
 }
 ```
 
-# Limitations
+## Limitations
 There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external dependencies, this crate is not able to fully support the formal specifications of those two file formats.
 
-## Supported Image Formats
+### Supported Image Formats
 | Format | Supported?                                         | 
 | ------ | -------------------------------------------------- | 
 | `PNG`  | All supported color types                          | 
@@ -58,7 +58,7 @@ There are two main limitations in this crate: both `ICNS` and `SVG` are not full
 | `PNM ` | `PBM`, `PGM`, `PPM`, standard `PAM`                |
 | `SVG`  | Limited(flat filled shapes only)                   |
 
-## ICNS Support
+### ICNS Support
 
 However, the coverage provided by these external dependencies should be more than enought for most use cases.
 
@@ -99,7 +99,7 @@ However, the coverage provided by these external dependencies should be more tha
 | `ic13` | 128x128@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 | `ic14` | 256x256@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 
-## SVG Support
+### SVG Support
 
 **IconWriter** uses the `nsvg` crate for rasterizing `.svg` files. According to the authors of the crate:
 
