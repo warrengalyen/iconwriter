@@ -3,7 +3,47 @@
 [![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rand#rust-version-requirements)
 
-A simple solution for generating `.ico` and `.icns` icons. This crate serves as **[IconWriter CLI's](https://github.com/warrengalyen/iconwriter)** internal library.
+A simple solution for encoding common icon file formats, such as `.ico` and `.icns`. This crate is mostly a wrapper for other libraries, unifying existing APIs into a single, cohesive interface.
+
+# Overview
+
+An icon stores a collection of small images of different sizes. Individial images within the icon are binded to a source image, which is rescaled to fit a particular size using a resampling filter.
+
+Resampling filters are represented by functions that take a source image and a size and return a rescaled raw RGBA buffer. This allows the user of this crate to provide their custom resampling filter. Common resampling filters are provided by the `resample` module.
+
+# Examples
+
+## General Usage
+
+```rust
+use iconwriter::*;
+ 
+fn main() -> iconwriter::Result<()> {
+    let icon = Ico::new();
+    match SourceImage::from_path("image.svg") {
+        Some(img) => icon.add_entry(resample::linear, &img, 32),
+        None      => Ok(())
+    }
+}
+```
+
+## Writing to a File
+```rust
+use iconwriter::*;
+use std::{io, fs::File};
+ 
+fn main() -> io::Result<()> {
+    let icon = PngSequence::new();
+
+    /* Process the icon */
+
+    let file = File::create("ou.icns")?;
+    icon.write(file)
+}
+```
+
+# Limitations
+There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external dependencies, this crate is not able to fully support the formal specifications of those two file formats.
 
 ## Supported Image Formats
 | Format | Supported?                                         | 
@@ -16,104 +56,9 @@ A simple solution for generating `.ico` and `.icns` icons. This crate serves as 
 | `TIFF` | Baseline(no fax support), `LZW`, PackBits          | 
 | `WEBP` | Lossy(Luma channel only)                           | 
 | `PNM ` | `PBM`, `PGM`, `PPM`, standard `PAM`                |
-| `SVG`  | Limited([flat filled shapes only](#svg-support))   |
+| `SVG`  | Limited(flat filled shapes only)                   |
 
-## Usage
-This crate's API revolves around the concept of binding source images to a set of sizes. The following example demonstrates this principle:
-
-```rust
-use iconwriter::prelude::*;
-
-const N_ENTRIES: usize = 1;
-
-fn main() {
-    // Creating the icon
-    let mut icon = Icon::ico(N_ENTRIES);
-
-    // Importing the source image
-    let src_image = SourceImage::from_path("img.jpg").unwrap();
-
-    // Adding the sizes
-    let _ = icon.add_sizes(vec![32, 64], &src_image).unwrap();
-}
-```
-
-Note that the `capacity` argument in the `Icon::ico`, `Icon::icns`, `Icon::png_sequence` and `Icon::new` methods specifies the expected number of _sizes_ in a given `Icon`.
-
-### Sampling From Multiple Sources
-Let's say you want to customize your icon so that the smaller versions of it are less detailed. **IconWriter** helps you achieve this by allowing to sample from multiple sources.
-
-You can simply combine separate source images by specifying to which size they should be assigned:
-
-```rust
-use iconwriter::prelude::*;
-
-fn main() {
-    let mut icon = Icon::ico(N_ENTRIES);
-
-    // Importing the source images
-    let small = SourceImage::from_path("small.jpg").unwrap();
-    let large = SourceImage::from_path("small.png").unwrap();
-
-    // Adding the sizes
-    let _ = icon.add_size(16, &small).unwrap();
-    let _ = icon.add_size(32, &large).unwrap();
-}
-```
-
-Note that different sizes can share a common source image.
-
-### Rasterizing
-Icons can be rasterized to a series of bitmap imaged with the help of the `Icon::rasterize` method. The sources will be scalled using the resampling filter provided in the `resampler` argument. The `iconwriter::resample` mod provides a series of standard resampling filters.
-
-```rust
-use iconwriter::prelude::*;
-
-const N_ENTRIES: usize = 1;
-
-fn main() {
-    // Creating the icon
-    let mut icon = Icon::ico(N_ENTRIES);
-
-    // Importing the source image
-    let src_image = SourceImage::from_path("img.jpg").unwrap();
-
-    // Adding the sizes
-    let _ = icon.add_sizes(vec![32, 64], &src_image).unwrap();
-
-    // Rasterize the sources
-    let rasters = icon.rasterize(iconwriter::resample::linear)
-        .unwrap_or_default();
-}
-```
-
-### Writing to Files
-Writing to files can be easily done by calling the [`Icon::write`](https://docs.rs/iconwriter/struct.Icon.html#method.write) method:
-
-```rust
-use iconwriter::prelude::*;
-use std::fs::File;
-
-/* Const declarations */
-fn main() {
-    let mut icon = Icon::ico(N_ENTRIES);
-
-    /* Process the icon */
-    if let Ok(&file) = File::create("myfile.ico") {
-             match icon.write(file, iconwriter::resample::linear) {
-            Ok(()) => println!("File 'myfile.ico' saved!"),
-            Err(_) => println!("An error occurred ;-;")
-        }
-    }
-}
-```
-
-Note that the `Icon::write` method can also write to instances of any type which implements [`Write`](https://doc.rust-lang.org/std/io/trait.Write.html).
-
-## Limitations
-There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external dependencies, this crate is not able to fully support the formal specifications of those two file formats.
-
-### ICNS Support
+## ICNS Support
 
 However, the coverage provided by these external dependencies should be more than enought for most use cases.
 
@@ -154,7 +99,7 @@ However, the coverage provided by these external dependencies should be more tha
 | `ic13` | 128x128@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 | `ic14` | 256x256@2x "retina" 32-bit PNG/JP2 icon | PNG only   |
 
-### SVG Support
+## SVG Support
 
 **IconWriter** uses the `nsvg` crate for rasterizing `.svg` files. According to the authors of the crate:
 
