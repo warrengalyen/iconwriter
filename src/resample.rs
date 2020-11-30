@@ -20,7 +20,7 @@ pub fn cubic(source: &SourceImage, size: Size) -> Result<RgbaImage> {
 }
 
 /// [Nearest-Neighbor resampling filter](https://en.wikipedia.org/wiki/Nearest-neighbor_interpolation).
-pub fn nearest_neighbor(source: &SourceImage, size: Size) -> Result<RgbaImage> {
+pub fn nearest(source: &SourceImage, size: Size) -> Result<RgbaImage> {
     match source {
         SourceImage::Bitmap(bit) => Ok(nearest::resample(bit, size)),
         SourceImage::Svg(svg) => svg_linear(svg, size)
