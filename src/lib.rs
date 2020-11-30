@@ -51,8 +51,14 @@ pub mod prelude {
 }
 
 pub trait Icon<W: Write> {
+        /// Creates a new icon with the underlying object `w` as the destination of all data written.
     fn new(w: W) -> Self;
 
+    /// Adds an individual entry to the icon.
+    /// # Arguments
+    /// * `filter` The resampling filter that will be used to re-scale `source`.
+    /// * `source` A reference to the source image this entry will be based on.
+    /// * `size` The target size of the entry in pixels.
     fn add_entry<F: FnMut(&SourceImage, Size) -> Result<RgbaImage>>(
         &mut self,
         filter: F,
@@ -60,6 +66,11 @@ pub trait Icon<W: Write> {
         size: Size
     ) -> Result<()>;
 
+    /// Adds a serie of entries to the icon.
+    /// # Arguments
+    /// * `filter` The resampling filter that will be used to re-scale `source`.
+    /// * `source` A reference to the source image this entry will be based on.
+    /// * `size` A conteiner for the target sizes of the entrie in pixels.
     fn add_entries<F: FnMut(&SourceImage, Size) -> Result<RgbaImage>,I: IntoIterator<Item = Size>>(
         &mut self,
         filter: F,
@@ -67,12 +78,11 @@ pub trait Icon<W: Write> {
         sizes: I
     ) -> Result<()>;
 
-    fn len(&self) -> usize;
-
+    /// Unwraps this `Icon`, returning the underlying writer.
     fn into_inner(self) -> io::Result<W>;
 }
 
-/// Trait for constructing structs from a given path.
+/// A trait for constructing structs from a given path.
 pub trait FromPath where Self: Sized {
     /// Constructs `Self` from a given path.
     fn from_path<P: AsRef<Path>>(path: P) -> Option<Self>;

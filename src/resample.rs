@@ -1,3 +1,5 @@
+//! A collection of commonly used resampling filters.
+
 use crate::{SourceImage, Size, Result, Error};
 use nsvg::{image::{imageops, DynamicImage, RgbaImage, GenericImage, FilterType}, SvgImage};
 
