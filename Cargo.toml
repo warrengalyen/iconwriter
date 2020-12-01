@@ -1,6 +1,6 @@
 [package]
 name = "iconwriter"
-version = "1.4.0"
+version = "1.4.1"
 authors = ["Warren Galyen <warrengalyen@users.noreply.github.com>"]
 edition = "2018"
 description = "A simple solution for encoding common icon file formats."
@@ -12,7 +12,6 @@ keywords = ["icon", "ico", "icns"]
 
 [dependencies]
 tar = "0.4.30"
-png_encode_mini = "0.1.2"
 nsvg = "0.5.1"
 ico = "0.1.0"
 icns = "0.3.1"

@@ -3,7 +3,7 @@
 //!  for other libraries, unifying existing APIs into a single,
 //!  cohesive interface.
 //! 
-//! This crate serves as **[IconWriter CLI's]
+//! This crate serves as **[IconWriter's]
 //! (https://github.com/warrengalyen/iconwriter)** internal
 //!  library.
 //! 
@@ -23,7 +23,7 @@
 //! # Examples
 //! 
 //! ## General Usage
-//! ```rust
+//! ```rust, ignore
 //! use iconwriter::*;
 //!  
 //! fn example() -> iconwriter::Result<()> {
@@ -37,7 +37,7 @@
 //! ```
 //! 
 //! ## Writing to a File
-//! ```rust
+//! ```rust, ignore
 //! use iconwriter::*;
 //! use std::{io, fs::File};
 //!  
@@ -90,7 +90,7 @@ pub trait Icon {
     /// Creates a new icon.
     /// 
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let icon = Ico::new();
     /// ```
     fn new() -> Self;
@@ -111,7 +111,7 @@ pub trait Icon {
     /// * Otherwise return `Ok(())`.
     ///  
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     ///  
     /// fn main() -> iconwriter::Result<()> {
@@ -145,7 +145,7 @@ pub trait Icon {
     /// * Otherwise return `Ok(())`.
     /// 
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     ///  
     /// fn main() -> iconwriter::Result<()> {
@@ -171,7 +171,7 @@ pub trait Icon {
     /// Writes the contents of the icon to `w`.
     /// 
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
@@ -215,7 +215,7 @@ impl SourceImage {
     /// methods should always be preferred.
     /// 
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let img = SourceImage::from_path("source.png")?;
     /// ```
     pub fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
