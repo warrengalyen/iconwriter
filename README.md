@@ -9,7 +9,7 @@ A simple solution for encoding common icon file formats, such as `.ico` and `.ic
 
 An icon stores a collection of small images of different sizes. Individual images within the icon are bound to a source image, which is rescaled to fit a particular size using a resampling filter.
 
-Resampling filters are represented by functions that take a source image and a size and return a rescaled raw RGBA buffer. This allows the user of this crate to provide their custom resampling filter. Common resampling filters are provided by the `resample` module.
+Resampling filters are represented by functions that take a source image and a size and return a rescaled raw RGBA buffer. This allows the users of this crate to provide their custom resampling filters. Common resampling filters are provided by the `resample` module.
 
 ## Examples
 
@@ -18,7 +18,7 @@ Resampling filters are represented by functions that take a source image and a s
 ```rust
 use iconwriter::*;
  
-fn main() -> iconwriter::Result<()> {
+fn example() -> iconwriter::Result<()> {
     let icon = Ico::new();
     match SourceImage::from_path("image.svg") {
         Some(img) => icon.add_entry(resample::linear, &img, 32),
@@ -32,7 +32,7 @@ fn main() -> iconwriter::Result<()> {
 use iconwriter::*;
 use std::{io, fs::File};
  
-fn main() -> io::Result<()> {
+fn example() -> io::Result<()> {
     let icon = PngSequence::new();
 
     /* Process the icon */
@@ -43,7 +43,8 @@ fn main() -> io::Result<()> {
 ```
 
 ## Limitations
-There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external dependencies, this crate is not able to fully support the formal specifications of those two file formats.
+There are two main limitations in this crate: both `ICNS` and `SVG` are not fully supported. Due to the use of external dependencies, the author of this crate is not able to fully support the formal specifications of those two file formats.
+
 
 ### Supported Image Formats
 | Format | Supported?                                         | 
@@ -101,7 +102,7 @@ However, the coverage provided by these external dependencies should be more tha
 
 ### SVG Support
 
-**IconWriter** uses the `nsvg` crate for rasterizing `.svg` files. According to the authors of the crate:
+**IconWriter** uses the `nsvg` crate to rasterize `.svg` files. According to the authors of the crate:
 
 > Like NanoSVG, the rasterizer only renders flat filled shapes. It is not particularly fast or accurate, but it is a simple way to bake vector graphics into textures.
 
