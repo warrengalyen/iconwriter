@@ -12,7 +12,7 @@ keywords = ["icon", "ico", "icns"]
 
 [dependencies]
 tar = "0.4.30"
-nsvg = "0.5.1"
 ico = "0.1.0"
 icns = "0.3.1"
-serde = "1.0.117"
+image = "0.22.5"
+resvg = { version = "0.6.0", features = ["cairo-backend"] } 

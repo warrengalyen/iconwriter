@@ -3,9 +3,8 @@
 //!  for other libraries, unifying existing APIs into a single,
 //!  cohesive interface.
 //! 
-//! This crate serves as **[IconWriter's]
-//! (https://github.com/warrengalyen/iconwriter)** internal
-//!  library.
+//! This crate serves as **[Iconiic's](https://github.com/warrengalyen/iconiic)**
+//!  internal library.
 //! 
 //! # Overview
 //! 
@@ -50,7 +49,7 @@
 //!     icon.write(file)
 //! }
 //! ```
-//! //! 
+//! 
 //! # Supported Image Formats
 //! | Format | Supported?                                         | 
 //! | ------ | -------------------------------------------------- | 
@@ -64,15 +63,16 @@
 //! | `PNM ` | `PBM`, `PGM`, `PPM`, standard `PAM`                |
 //! | `SVG`  | Limited(flat filled shapes only)                   |
 
-pub extern crate nsvg;
+pub extern crate image;
+pub extern crate resvg;
 
 use std::{result, error, convert::From, path::Path, io::{self, Write}, fmt::{self, Display}};
-pub use nsvg::{image::{self, DynamicImage, RgbaImage, GenericImage}, SvgImage};
+pub use image::{DynamicImage, RgbaImage, GenericImage, GenericImageView};
+pub use resvg::{usvg::{self, Tree}, cairo};
 
 pub use crate::ico::Ico;
 pub use crate::icns::Icns;
 pub use crate::png_sequence::PngSequence;
-pub use crate::favicon::FavIcon;
 
 pub type Size = u32;
 pub type Result<T> = result::Result<T, Error>;
@@ -81,7 +81,6 @@ pub type Result<T> = result::Result<T, Error>;
 mod test;
 mod ico;
 mod icns;
-mod favicon;
 mod png_sequence;
 pub mod resample;
 
@@ -103,7 +102,7 @@ pub trait Icon {
     /// * `filter` The resampling filter that will be used to re-scale `source`.
     /// * `source` A reference to the source image this entry will be based on.
     /// * `size` The target size of the entry in pixels.
-    ///
+    /// 
     /// # Return Value
     /// * Returns `Err(Error::InvalidSize(_))` if the dimensions provided in the
     ///  `size` argument are not supported.
@@ -111,7 +110,7 @@ pub trait Icon {
     ///  if the resampling filter provided in the `filter` argument produces
     ///  results of dimensions other than the ones specified by `size`.
     /// * Otherwise return `Ok(())`.
-    ///  
+    /// 
     /// # Example
     /// ```rust, ignore
     /// use iconwriter::*;
@@ -169,7 +168,7 @@ pub trait Icon {
         source: &SourceImage,
         sizes: I
     ) -> Result<()> {
-        for size in sizes.into_iter() {
+        for size in sizes {
             self.add_entry(|src, size| filter(src, size), source, size)?;
         }
 
@@ -200,14 +199,14 @@ pub enum SourceImage {
     /// A generic raster image.
     Raster(DynamicImage),
     /// A svg-encoded vector image.
-    Svg(SvgImage)
+    Svg(Tree)
 }
 
 #[derive(Debug)]
 /// The error type for operations of the `Icon` trait.
 pub enum Error {
     /// Error from the `nsvg` crate.
-    Nsvg(nsvg::Error),
+    Usvg(usvg::Error),
     /// Error from the `image` crate.
     Image(image::ImageError),
     /// An unsupported size was suplied to an `Icon` operation.
@@ -229,11 +228,7 @@ impl SourceImage {
     pub fn from_path<P: AsRef<Path>>(path: P) -> Option<Self> {
         match image::open(&path) {
             Ok(bit) => Some(SourceImage::Raster(bit)),
-            Err(_)  => match nsvg::parse_file(
-                path.as_ref(),
-                nsvg::Units::Pixel,
-                96.0
-            ) {
+            Err(_)  => match Tree::from_file(&path, &usvg::Options::default()) {
                 Ok(svg) => Some(SourceImage::Svg(svg)),
                 Err(_)  => None
             }
@@ -241,29 +236,38 @@ impl SourceImage {
     }
 
     /// Returns the width of the original image in pixels.
-    pub fn width(&self) -> f32 {
-        match self {
-            SourceImage::Raster(bit) => bit.width() as f32,
-            SourceImage::Svg(svg)    => svg.width()
-        }
+    pub fn width(&self) -> f64 {
+        let (w, _) = self.dimensions();
+
+        w
     }
 
     /// Returns the height of the original image in pixels.
-    pub fn height(&self) -> f32 {
-        match self {
-            SourceImage::Raster(bit) => bit.height() as f32,
-            SourceImage::Svg(svg)    => svg.height()
-        }
+    pub fn height(&self) -> f64 {
+        let (_, h) = self.dimensions();
+
+        h
     }
 
     /// Returns the dimensions of the original image in pixels.
-    pub fn dimensions(&self) -> (f32, f32) {
-        (self.width(), self.height())
+    pub fn dimensions(&self) -> (f64, f64) {
+        match self {
+            SourceImage::Raster(bit) => {
+                let (w, h) = bit.dimensions();
+
+                (w as f64, h as f64)
+            },
+            SourceImage::Svg(svg) => {
+                let rect = svg.svg_node().view_box.rect;
+
+                (rect.width - rect.x as f64, rect.height - rect.y as f64)
+            }
+        }
     }
 }
 
-impl From<SvgImage> for SourceImage {
-    fn from(svg: SvgImage) -> Self {
+impl From<Tree> for SourceImage {
+    fn from(svg: Tree) -> Self {
         SourceImage::Svg(svg)
     }
 }
@@ -277,7 +281,7 @@ impl From<DynamicImage> for SourceImage {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Nsvg(err)      => write!(f, "{}", err),
+            Error::Usvg(err)      => write!(f, "{}", err),
             Error::Image(err)     => write!(f, "{}", err),
             Error::Io(err)        => write!(f, "{}", err),
             Error::InvalidSize(_) => write!(f, "{}", INVALID_SIZE_ERROR)
@@ -288,7 +292,7 @@ impl Display for Error {
 impl error::Error for Error {
     fn description(&self) -> &str {
         match self {
-            Error::Nsvg(err)      => err.description(),
+            Error::Usvg(err)      => err.description(),
             Error::Image(err)     => err.description(),
             Error::Io(err)        => err.description(),
             Error::InvalidSize(_) => INVALID_SIZE_ERROR
@@ -297,7 +301,7 @@ impl error::Error for Error {
 
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Error::Nsvg(err)      => err.source(),
+            Error::Usvg(err)      => err.source(),
             Error::Image(err)     => err.source(),
             Error::Io(ref err)    => Some(err),
             Error::InvalidSize(_) => None
@@ -305,9 +309,9 @@ impl error::Error for Error {
     }
 }
 
-impl From<nsvg::Error> for Error {
-    fn from(err: nsvg::Error) -> Self {
-        Error::Nsvg(err)
+impl From<usvg::Error> for Error {
+    fn from(err: usvg::Error) -> Self {
+        Error::Usvg(err)
     }
 }
 
@@ -320,5 +324,14 @@ impl From<image::ImageError> for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Error::Io(err)
+    }
+}
+
+impl From<cairo::IoError> for Error {
+    fn from(err: cairo::IoError) -> Self {
+        match err {
+            cairo::IoError::Io(err)  => Error::from(err),
+            cairo::IoError::Cairo(_) => Error::Io(io::Error::from(io::ErrorKind::Other))
+        }
     }
 }
