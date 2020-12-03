@@ -1,7 +1,7 @@
 # IconWriter
 [![Crate](https://img.shields.io/crates/v/iconwriter.svg)](https://crates.io/crates/iconwriter)
 [![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
-[![Minimum rustc version](https://img.shields.io/badge/rustc-1.32+-lightgray.svg)](https://github.com/rust-random/rand#rust-version-requirements)
+![Minimum rustc version](https://img.shields.io/badge/rustc-1.37+-lightgray.svg)
 
 A simple solution for encoding common icon file-formats, such as `.ico` and `.icns`. 
 
