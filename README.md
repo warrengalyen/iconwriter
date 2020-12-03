@@ -60,7 +60,6 @@ be created using the [`Icon`](https://docs.rs/iconwriter/2.2.0/iconwriter/trait.
 * `ico`
 * `icns`
 * `png` sequence (`tar`)
-* `favicon` (`tar`)
 
 ### Icns Support
 
