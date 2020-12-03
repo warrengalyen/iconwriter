@@ -207,8 +207,13 @@ pub enum Error {
 impl SourceImage {
     /// Attempts to create a `SourceImage` from a given path.
     /// 
-    /// The `SourceImage::from::<DynamicImage>` and `SourceImage::from::<SvgImage>`
+    /// The `SourceImage::from::<image::DynamicImage>` and `SourceImage::from::<usvg::Tree>`
     /// methods should always be preferred.
+    /// 
+    /// # Return Value
+    /// * Returns `Some(src)` if the file indicated by the `path` argument could be 
+    ///   successfully parsed into an image.
+    /// * Returns `None` otherwise.
     /// 
     /// # Example
     /// ```rust, ignore
