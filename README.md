@@ -64,8 +64,8 @@ be created using the [`Icon`](https://docs.rs/iconwriter/2.2.0/iconwriter/trait.
 ### Icns Support
 
 **IconWriter** uses the [`icns`](https://crates.io/crates/icns) crate for generating `.icns` files. The 
-[supported icon types](https://github.com/mdsteele/rust-icns/blob/master/README.md#supported-icon-types) 
-are specified by the creators of such crate as follows:
+supported [icon types](https://en.wikipedia.org/wiki/Apple_Icon_Image_format#Icon_types) are specified 
+by the creators of such crate as follows:
 
 | OSType | Description                                  | Supported?   |
 |--------|----------------------------------------------|--------------|
