@@ -22,9 +22,10 @@
 //! ## General Usage
 //! 
 //! ```rust, ignore
-//! use iconwriter::*;
+//! use iconwriter::{Ico, SourceImage, Icon};
+//! use iconwriter::Error as IconError;
 //!  
-//! fn example() -> iconwriter::Result<()> {
+//! fn example() -> Result<(), IconError> {
 //!     let icon = Ico::new();
 //! 
 //!     match SourceImage::from_path("image.svg") {
@@ -63,8 +64,8 @@ pub use crate::ico::Ico;
 pub use crate::icns::Icns;
 pub use crate::png_sequence::PngSequence;
 
-pub type Size = u32;
-pub type Result<T> = result::Result<T, Error>;
+type Size = u32;
+type Result<T> = result::Result<T, Error>;
 
 #[cfg(test)]
 mod test;
@@ -102,9 +103,10 @@ pub trait Icon {
     /// 
     /// # Example
     /// ```rust, ignore
-    /// use iconwriter::*;
+    /// use iconwriter::{Ico, SourceImage, Icon};
+    /// use iconwriter::Error as IconError;
     ///  
-    /// fn main() -> iconwriter::Result<()> {
+    /// fn example() -> Result<(), IconError> {
     ///     let icon = Ico::new();
     /// 
     ///     match SourceImage::from_path("image.svg") {
@@ -136,9 +138,10 @@ pub trait Icon {
     /// 
     /// # Example
     /// ```rust, ignore
-    /// use iconwriter::*;
+    /// use iconwriter::{Icns, SourceImage, Icon};
+    /// use iconwriter::Error as IconError;
     ///  
-    /// fn main() -> iconwriter::Result<()> {
+   /// fn example() -> Result<(), IconError> {
     ///     let icon = Icns::new();
     /// 
     ///     match SourceImage::from_path("image.svg") {
@@ -171,7 +174,7 @@ pub trait Icon {
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
-    /// fn main() -> io::Result<()> {
+    /// fn example() -> io::Result<()> {
     ///     let icon = PngSequence::new();
     /// 
     ///     /* Process the icon */

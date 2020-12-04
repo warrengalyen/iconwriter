@@ -23,9 +23,10 @@ Resampling filters are represented by functions that take a source image and a s
 ### General Usage
 
 ```rust
-use iconwriter::*;
+use iconwriter::{Ico, SourceImage, Icon};
+use iconwriter::Error as IconError;
  
-fn example() -> iconwriter::Result<()> {
+fn example() -> Result<(), IconError> {
     let icon = Ico::new();
     match SourceImage::from_path("image.svg") {
         Some(img) => icon.add_entry(resample::linear, &img, 32),
