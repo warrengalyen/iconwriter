@@ -55,21 +55,28 @@
 pub extern crate image;
 pub extern crate resvg;
 
-pub use resvg::{usvg, raqote};
-use std::{error, convert::From, path::{Path, PathBuf}, io::{self, Write}, fs::File, fmt::{self, Display, Debug}};
-use image::{DynamicImage, GenericImageView};
 use crate::usvg::Tree;
+use image::{DynamicImage, GenericImageView};
+pub use resvg::{raqote, usvg};
+use std::{
+    convert::From,
+    error,
+    fmt::{self, Debug, Display},
+    fs::File,
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
-pub use crate::ico::Ico;
 pub use crate::icns::Icns;
+pub use crate::ico::Ico;
 pub use crate::png_sequence::PngSequence;
 
-#[cfg(test)]
-mod test;
-mod ico;
 mod icns;
+mod ico;
 mod png_sequence;
 pub mod resample;
+#[cfg(test)]
+mod test;
 
 const STD_CAPACITY: usize = 7;
 const INVALID_DIM_ERR: &str = "a resampling filter returned images of invalid resolution";
@@ -89,16 +96,19 @@ pub trait Icon<E: AsRef<u32> + Debug + Eq> {
     /// # Arguments
     /// * `filter` The resampling filter that will be used to re-scale `source`.
     /// * `source` A reference to the source image this entry will be based on.
-    /// * `size` The target size of the entry in pixels.
-    /// 
+    /// * `entry` Information on the target entry.
+    ///
     /// # Return Value
-    /// * Returns `Err(Error::InvalidSize(_))` if the dimensions provided in the
-    ///  `size` argument are not supported.
-    /// * Returns `Err(Error::Image(ImageError::DimensionError))`
-    ///  if the resampling filter provided in the `filter` argument produces
-    ///  results of dimensions other than the ones specified by `size`.
-    /// * Otherwise return `Ok(())`.
-    /// 
+    ///
+    /// * Returns `Err(Error::InvalidDimensions(_))` if the dimensions provided in the
+    ///   `entry` argument are not supported.
+    /// * Returns `Err(Error::AlreadyIncluded(_))` if the icon already contains
+    ///   the target entry.
+    /// * Returns `Err(Error::MismatchedDimensions(_, (_, _)))`
+    ///   if the resampling filter provided in the `filter` argument produces
+    ///   results of dimensions other than the ones specified by `entry`.
+    /// * Otherwise returns `Ok(())`.
+    ///
     /// # Example
     /// 
     /// ```rust, ignore
@@ -118,23 +128,27 @@ pub trait Icon<E: AsRef<u32> + Debug + Eq> {
         &mut self,
         filter: F,
         source: &SourceImage,
-        entry: E
+        entry: E,
     ) -> Result<(), Error<E>>;
 
     /// Adds a series of entries to the icon.
+    /// 
     /// # Arguments
+    /// 
     /// * `filter` The resampling filter that will be used to re-scale `source`.
     /// * `source` A reference to the source image this entry will be based on.
-    /// * `size` A container for the target sizes of the entries in pixels.
-    /// 
+    /// * `entries` A container for the information on the target entries.
+    ///
     /// # Return Value
-    /// * Returns `Err(Error::InvalidSize(_))` if the dimensions provided in the
-    ///  `size` argument are not supported.
-    /// * Returns `Err(Error::Image(ImageError::DimensionError))`
-    ///  if the resampling filter provided in the `filter` argument produces
-    ///  results of dimensions other than the ones specified by `size`.
-    /// * Otherwise return `Ok(())`.
-    /// 
+    /// * Returns `Err(Error::InvalidDimensions(_))` if any of the items of `entries`
+    ///   provides unsupported dimensions.
+    /// * Returns `Err(Error::AlreadyIncluded(_))` if the icon already contains
+    ///   any of the target entries.
+    /// * Returns `Err(Error::MismatchedDimensions(_, (_, _)))`
+    ///   if the resampling filter provided in the `filter` argument produces
+    ///   results of dimensions other than the ones specified by `entries`.
+    /// * Otherwise returns `Ok(())`.
+    ///
     /// # Example
     /// 
     /// ```rust, ignore
@@ -158,7 +172,7 @@ pub trait Icon<E: AsRef<u32> + Debug + Eq> {
         &mut self,
         mut filter: F,
         source: &SourceImage,
-        entries: I
+        entries: I,
     ) -> Result<(), Error<E>> {
         for entry in entries {
             self.add_entry(|src, size| filter(src, size), source, entry)?;
@@ -190,7 +204,7 @@ pub trait Icon<E: AsRef<u32> + Debug + Eq> {
     /// 
     /// # Example
     /// 
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
@@ -220,7 +234,7 @@ pub enum SourceImage {
     /// A generic raster image.
     Raster(DynamicImage),
     /// A svg-encoded vector image.
-    Svg(Tree)
+    Svg(Tree),
 }
 
 #[derive(Debug)]
@@ -228,14 +242,14 @@ pub enum SourceImage {
 pub enum Error<E: AsRef<u32> + Debug + Eq> {
     /// The `Icon` instance already includes this entry.
     AlreadyIncluded(E),
-    /// The return value of a resampling filter has invalid
-    /// dimensions: the dimensions do not match the ones
-    /// specified in the application of the filter.
-    InvalidDimensions(u32, (u32, u32)),
-    /// An unsupported size was suplied to an `Icon` operation.
-    InvalidSize(u32),
     /// Generic I/O error.
-    Io(io::Error)
+    Io(io::Error),
+    /// Unsupported dimensions was suplied to an `Icon`
+    /// operation.
+    InvalidDimensions(u32),
+    /// A resampling filter produced results of dimensions
+    /// other the ones specified by it's arguments.
+    MismatchedDimensions(u32, (u32, u32)),
 }
 
 impl AsRef<u32> for Entry {
@@ -247,7 +261,7 @@ impl AsRef<u32> for Entry {
 impl NamedEntry {
     /// Creates a `NamedEntry` from a reference to a `Path`.
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let entry = NamedEntry::from(32, &"icons/32/icon.png");
     /// ```
     pub fn from<P: AsRef<Path>>(size: u32, path: &P) -> Self {
@@ -288,14 +302,15 @@ impl SourceImage {
         }
 
         Tree::from_file(&path, &usvg::Options::default())
-        .ok().map(|svg| SourceImage::from(svg))
+            .ok()
+            .map(|svg| SourceImage::from(svg))
     }
 
     /// Returns the width of the original image in pixels.
     pub fn width(&self) -> f64 {
         match self {
             SourceImage::Raster(ras) => ras.width() as f64,
-            SourceImage::Svg(svg)    => svg.svg_node().view_box.rect.width()
+            SourceImage::Svg(svg) => svg.svg_node().view_box.rect.width()
         }
     }
 
@@ -329,10 +344,13 @@ impl<E: AsRef<u32> + Debug + Eq> Display for Error<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::AlreadyIncluded(_) => write!(f, "the icon already includes this entry"),
-            Error::InvalidSize(s)     => write!(f, "{0}x{0} icons are not supported", s),
-            Error::Io(err)            => write!(f, "{}", err),
-            Error::InvalidDimensions(s, (w, h))
-                => write!(f, "{0}: expected {1}x{1} and got {2}x{3}", INVALID_DIM_ERR, s, w, h)
+            Error::InvalidDimensions(s) => write!(f, "{0}x{0} icons are not supported", s),
+            Error::Io(err) => write!(f, "{}", err),
+            Error::MismatchedDimensions(s, (w, h)) => write!(
+                f,
+                "{0}: expected {1}x{1} and got {2}x{3}",
+                INVALID_DIM_ERR, s, w, h
+            ),
         }
     }
 }
@@ -356,9 +374,9 @@ impl<E: AsRef<u32> + Debug + Eq> From<io::Error> for Error<E> {
 impl<E: AsRef<u32> + Debug + Eq> Into<io::Error> for Error<E> {
     fn into(self) -> io::Error {
         match self {
-            Error::Io(err)                 => err,
-            Error::InvalidDimensions(_, _) => io::Error::from(io::ErrorKind::InvalidData),
-            _                              => io::Error::from(io::ErrorKind::InvalidInput)
+            Error::Io(err) => err,
+            Error::MismatchedDimensions(_, _) => io::Error::from(io::ErrorKind::InvalidData),
+            _ => io::Error::from(io::ErrorKind::InvalidInput),
         }
     }
 }
