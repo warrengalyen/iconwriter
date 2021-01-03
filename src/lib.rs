@@ -55,9 +55,9 @@
 pub extern crate image;
 pub extern crate resvg;
 
+pub use resvg::{raqote, usvg};
 use crate::usvg::Tree;
 use image::{DynamicImage, GenericImageView};
-pub use resvg::{raqote, usvg};
 use std::{
     convert::From,
     error,
@@ -79,7 +79,8 @@ pub mod resample;
 mod test;
 
 const STD_CAPACITY: usize = 7;
-const INVALID_DIM_ERR: &str = "a resampling filter returned images of invalid resolution";
+const INVALID_DIM_ERR: &str =
+    "a resampling filter returned an image of dimensions other than the ones specified by it's arguments";
 
 /// A generic representation of an icon encoder.
 pub trait Icon<E: AsRef<u32> + Debug + Eq> {
@@ -229,7 +230,7 @@ pub struct Entry(u32);
 pub struct NamedEntry(u32, PathBuf);
 
 #[derive(Clone)]
-/// A representation of a source image.
+/// A unique type for raster and vector graphics.
 pub enum SourceImage {
     /// A generic raster image.
     Raster(DynamicImage),
