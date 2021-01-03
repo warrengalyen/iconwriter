@@ -1,22 +1,19 @@
 extern crate icns;
 
-use crate::{Entry, Icon, SourceImage, Error, STD_CAPACITY};
+use crate::{Size, Icon, SourceImage, Error, STD_CAPACITY};
 use image::{DynamicImage, GenericImageView};
 use std::{
     fmt::{self, Debug, Formatter},
     io::{self, Write},
 };
 
-/// An encoder for the `.icns` file format.
+/// An ecoder for the `.icns` file format.
 pub struct Icns {
     icon_family: icns::IconFamily,
-    entries: Vec<IcnsEntry>,
+    entries: Vec<u32>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum IcnsEntry {E16, E32, E64, E128, E256, E512, E1024}
-
-impl Icon<IcnsEntry> for Icns {
+impl Icon<Size> for Icns {
     fn new() -> Self {
         Icns {
             icon_family: icns::IconFamily::new(),
@@ -28,28 +25,25 @@ impl Icon<IcnsEntry> for Icns {
         &mut self,
         mut filter: F,
         source: &SourceImage,
-        entry: IcnsEntry
-    ) -> Result<(), Error<IcnsEntry>> {
-        let size = entry.size();
-        let icon = filter(source, size);
+        entry: Size
+    ) -> Result<(), Error<Size>> {
+        let icon = filter(source, entry.0);
         let data = icon.to_rgba().into_vec();
 
-        if self.entries.contains(&entry) {
+        if self.entries.contains(&entry.0) {
             return Err(Error::AlreadyIncluded(entry));
         }
 
         // The Image::from_data method only fails when the specified
         // image dimensions do not fit the buffer length
-        let image = icns::Image::from_data(icns::PixelFormat::RGBA, size, size, data)
-        .map_err(|_| Error::MismatchedDimensions(size, icon.dimensions()))?;
+        let image = icns::Image::from_data(icns::PixelFormat::RGBA, entry.0, entry.0, data)
+            .map_err(|_| Error::MismatchedDimensions(entry.0, icon.dimensions()))?;
 
         // The IconFamily::add_icon method only fails when the
         // specified image dimensions are not supported by ICNS
         self.icon_family
             .add_icon(&image)
-            .expect("This should not fail!");
-
-            Ok(())
+            .map_err(|_| Error::InvalidDimensions(entry.0))
     }
 
     fn write<W: Write>(&mut self, w: &mut W) -> io::Result<()> {
@@ -100,19 +94,5 @@ impl Debug for Icns {
         );
 
         write!(f, "iconwriter::Icns {{ icon_family: {} }} ", icon_dir)
-    }
-}
-
-impl Entry for IcnsEntry {
-    fn size(&self) -> u32 {
-        match self {
-            IcnsEntry::E16   => 16,
-            IcnsEntry::E32   => 32,
-            IcnsEntry::E64   => 64,
-            IcnsEntry::E128  => 128,
-            IcnsEntry::E256  => 256,
-            IcnsEntry::E512  => 512,
-            IcnsEntry::E1024 => 1024
-        }
     }
 }

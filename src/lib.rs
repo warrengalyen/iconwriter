@@ -83,7 +83,7 @@ pub trait Icon<E: AsRef<u32>> {
     /// Creates a new icon.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let icon = Ico::new();
     /// ```
     fn new() -> Self;
@@ -109,7 +109,7 @@ pub trait Icon<E: AsRef<u32>> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::{Ico, SourceImage, Icon, Error};
     ///  
     /// fn example() -> Result<(), Error> {
@@ -149,7 +149,7 @@ pub trait Icon<E: AsRef<u32>> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::{Icns, SourceImage, Icon, Error};
     ///  
     /// fn example() -> Result<(), Error> {
@@ -182,7 +182,7 @@ pub trait Icon<E: AsRef<u32>> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
@@ -201,7 +201,7 @@ pub trait Icon<E: AsRef<u32>> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
@@ -217,10 +217,6 @@ pub trait Icon<E: AsRef<u32>> {
         let mut file = File::create(path.as_ref())?;
         self.write(&mut file)
     }
-}
-
-pub trait Entry {
-    fn dimensions(&self) -> u32;
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -267,7 +263,7 @@ impl AsRef<u32> for Size {
 impl PngEntry {
     /// Creates a `NamedEntry` from a reference to a `Path`.
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let entry = NamedEntry::from(32, &"icons/32/icon.png");
     /// ```
     pub fn from<P: AsRef<Path>>(size: u32, path: &P) -> Self {
@@ -299,7 +295,7 @@ impl SourceImage {
     /// * Returns `None` otherwise.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// let img = SourceImage::open("source.png")?;
     /// ```
     pub fn open<P: AsRef<Path>>(path: P) -> Option<Self> {

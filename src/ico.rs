@@ -1,28 +1,24 @@
 extern crate ico;
 
-use crate::{resample, Entry, Error, Icon, SourceImage, STD_CAPACITY};
+use crate::{resample, Size, Error, Icon, SourceImage, STD_CAPACITY};
 use image::DynamicImage;
 use std::{
     fmt::{self, Debug, Formatter},
     io::{self, Write},
     result,
-    num::NonZeroU8
 };
 
+const MIN_ICO_SIZE: u32 = 1;
+const MAX_ICO_SIZE: u32 = 256;
+
+/// An ecoder for the `.ico` file format.
 #[derive(Clone)]
-/// An encoder for the `.ico` file format.
 pub struct Ico {
     icon_dir: ico::IconDir,
-    entries: Vec<NonZeroU8>,
+    entries: Vec<u32>,
 }
 
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
-pub struct IcoEntry(NonZeroU8);
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct IcoEntry(u8);
-
-impl Icon<IcoEntry> for Ico {
+impl Icon<Size> for Ico {
     fn new() -> Self {
         Ico {
             icon_dir: ico::IconDir::new(ico::ResourceType::Icon),
@@ -34,16 +30,19 @@ impl Icon<IcoEntry> for Ico {
         &mut self,
         filter: F,
         source: &SourceImage,
-        entry: IcoEntry,
-    ) -> Result<(), Error<IcoEntry>> {
+        entry: Size,
+    ) -> Result<(), Error<Size>> {
+        if entry.0 < MIN_ICO_SIZE || entry.0 > MAX_ICO_SIZE {
+            return Err(Error::InvalidDimensions(entry.0));
+        }
+
         if self.entries.contains(&entry.0) {
             return Err(Error::AlreadyIncluded(entry));
         }
 
-        let size = entry.size();
-        let icon = resample::safe_filter(filter, source, size)?;
+        let icon = resample::safe_filter(filter, source, entry.0)?;
         let data = icon.to_rgba().into_vec();
-        let image = ico::IconImage::from_rgba_data(size, size, data);
+        let image = ico::IconImage::from_rgba_data(entry.0, entry.0, data);
 
         let entry = ico::IconDirEntry::encode(&image)?;
         self.icon_dir.add_entry(entry);
@@ -71,19 +70,5 @@ impl Debug for Ico {
         );
 
         write!(f, "iconwriter::Ico {{ icon_dir: {} }} ", icon_dir)
-    }
-}
-
-impl IcoEntry {
-    pub fn new(n: u8) -> Option<Self> {
-        let raw = NonZeroU8::new(n)?;
-
-        Some(IcoEntry(raw))        
-    }
-}
-
-impl Entry for IcoEntry {
-    fn size(&self) -> u32 {
-        self.0.get() as u32
     }
 }

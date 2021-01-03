@@ -1,6 +1,6 @@
 //! A collection of commonly used resampling filters.
 
-use crate::{SourceImage, Entry, Error};
+use crate::{SourceImage, Error};
 use std::fmt::Debug;
 use image::{imageops, DynamicImage, ImageBuffer, GenericImageView, FilterType, Bgra};
 use resvg::{usvg::{self, Tree}, raqote::DrawTarget , FitTo};
@@ -9,7 +9,7 @@ use resvg::{usvg::{self, Tree}, raqote::DrawTarget , FitTo};
 pub fn linear(source: &SourceImage, size: u32) -> DynamicImage {
     match source {
         SourceImage::Raster(bit) => scale(bit, size, FilterType::Triangle),
-        SourceImage::Svg(svg) => svg_linear(svg, size)
+        SourceImage::Svg(svg)    => svg_linear(svg, size)
     }
 }
 
@@ -17,7 +17,7 @@ pub fn linear(source: &SourceImage, size: u32) -> DynamicImage {
 pub fn cubic(source: &SourceImage, size: u32) -> DynamicImage {
     match source {
         SourceImage::Raster(bit) => scale(bit, size, FilterType::Lanczos3),
-        SourceImage::Svg(svg) => svg_linear(svg, size)
+        SourceImage::Svg(svg)    => svg_linear(svg, size)
     }
 }
 
@@ -25,7 +25,7 @@ pub fn cubic(source: &SourceImage, size: u32) -> DynamicImage {
 pub fn nearest(source: &SourceImage, size: u32) -> DynamicImage {
     match source {
         SourceImage::Raster(bit) => nearest_raster(bit, size),
-        SourceImage::Svg(svg) => svg_linear(svg, size)
+        SourceImage::Svg(svg)    => svg_linear(svg, size)
     }
 }
 
@@ -56,7 +56,7 @@ fn scale(source: &DynamicImage, size: u32, filter: FilterType) -> DynamicImage {
     DynamicImage::ImageRgba8(imageops::resize(source, nw, nh, filter))
 }
 
-fn overfit(source: &DynamicImage, size: u32) -> DynamicImage{
+fn overfit(source: &DynamicImage, size: u32) -> DynamicImage {
     let mut output = DynamicImage::new_rgba8(size, size);
 
     let dx = (output.width()  - source.width() ) / 2;
@@ -96,11 +96,11 @@ fn draw_target_to_rgba(mut surface: DrawTarget, size: u32) -> DynamicImage {
         Some(buf) => overfit(&DynamicImage::ImageBgra8(buf), size),
         None      => panic!("Buffer in not big enought")
     }
-} 
+}
 
 /// Aplies a resampling filter to a source and checks if the outputted dimensions match
 /// the ones specified by `size`.
-pub(crate) fn safe_filter<F: FnMut(&SourceImage, u32) -> DynamicImage, E: Entry + Debug + Eq>(
+pub(crate) fn safe_filter<F: FnMut(&SourceImage, u32) -> DynamicImage, E: AsRef<u32> + Debug + Eq>(
     mut filter: F,
     source: &SourceImage,
     size: u32
@@ -113,4 +113,4 @@ pub(crate) fn safe_filter<F: FnMut(&SourceImage, u32) -> DynamicImage, E: Entry 
     } else {
         Ok(icon)
     }
-} 
+}
