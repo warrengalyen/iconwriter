@@ -100,10 +100,12 @@ const INVALID_DIM_ERR: &str =
 /// A generic representation of an icon encoder.
 pub trait Icon
 where
-Self: Sized,
+    Self: Sized,
     Self::Key: AsSize,
+    Self::WriteOptions: Default
 {
     type Key;
+    type WriteOptions;
 
     /// Creates a new icon.
     ///
@@ -120,7 +122,7 @@ Self: Sized,
     /// that will be allocated.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust, ignore
     /// // Preallocate 7 entries
     /// let icon = Ico::with_capacity(7);
     /// ```
@@ -237,7 +239,7 @@ Self: Sized,
     ///     icon.write(file)
     /// }
     /// ```
-    fn write<W: Write>(&mut self, w: &mut W) -> io::Result<()>;
+    fn write<W: Write>(&mut self, w: &mut W, options: &Self::WriteOptions) -> io::Result<()>;
 
     /// Writes the contents of the icon to a file on disk.
     ///
@@ -255,9 +257,13 @@ Self: Sized,
    ///     icon.save("./output/")
     /// }
     /// ```
-    fn save<P: AsRef<Path>>(&mut self, path: &P) -> io::Result<()> {
+    fn save<P: AsRef<Path>>(
+        &mut self,
+        path: &P,
+        options: &Self::WriteOptions
+    ) -> io::Result<()> {
         let mut file = File::create(path.as_ref())?;
-        self.write(&mut file)
+        self.write(&mut file, options)
     }
 }
 
