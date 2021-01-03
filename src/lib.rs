@@ -51,6 +51,21 @@
 //! ```
 //! 
 
+pub extern crate image;
+pub extern crate resvg;
+
+pub use resvg::{raqote, usvg};
+use crate::usvg::Tree;
+use image::{DynamicImage, GenericImageView};
+use std::{
+    convert::From,
+    error,
+    fmt::{self, Debug, Display, Formatter},
+    fs::File,
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
+
 pub mod icns;
 pub mod ico;
 pub mod favicon;
@@ -64,7 +79,7 @@ const INVALID_DIM_ERR: &str =
     "a resampling filter returned an image of dimensions other than the ones specified by it's arguments";
 
 /// A generic representation of an icon encoder.
-pub trait Icon<E: Entry> {
+pub trait Icon<E: AsRef<u32>> {
     /// Creates a new icon.
     ///
     /// # Example
@@ -205,15 +220,20 @@ pub trait Icon<E: Entry> {
 }
 
 pub trait Entry {
-    fn size(&self) -> u32;
+    fn dimensions(&self) -> u32;
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+/// An _entry type_ for simple icons that only associate images
+/// with their dimensions. Usefull for icon formats such as the
+/// `.ico` and `.icns` file formats.
+pub struct Size(u32);
+
 #[derive(Clone, Debug, Eq, Hash)]
-/// An _entry type_ for icon formats that consist of a collection
-/// of files, such as 
-/// _[favicons](https://en.wikipedia.org/wiki/Favicon)_ or
+/// An _entry type_ for _icon formats_ that consist of a
+/// collection of files, such as _png sequences_ or
 /// _[FreeDesktop icon themes](https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html)_.
-pub struct FileLabel(u32, PathBuf);
+pub struct PngEntry(u32, PathBuf);
 
 #[derive(Clone)]
 /// A uniun type for raster and vector graphics.
@@ -225,35 +245,44 @@ pub enum SourceImage {
 }
 
 /// The error type for operations of the `Icon` trait.
-pub enum Error<E: Entry> {
+pub enum Error<E: AsRef<u32>> {
     /// The `Icon` instance already includes this entry.
     AlreadyIncluded(E),
     /// Generic I/O error.
     Io(io::Error),
+    /// Unsupported dimensions were suplied to an `Icon`
+    /// operation.
+    InvalidDimensions(u32),
     /// A resampling filter produced results of dimensions
     /// other the ones specified by it's arguments.
     MismatchedDimensions(u32, (u32, u32)),
 }
 
-impl FileLabel {
+impl AsRef<u32> for Size {
+    fn as_ref(&self) -> &u32 {
+        &self.0
+    }
+}
+
+impl PngEntry {
     /// Creates a `NamedEntry` from a reference to a `Path`.
     /// # Example
     /// ```rust
     /// let entry = NamedEntry::from(32, &"icons/32/icon.png");
     /// ```
     pub fn from<P: AsRef<Path>>(size: u32, path: &P) -> Self {
-        FileLabel(size, PathBuf::from(path.as_ref()))
+        PngEntry(size, PathBuf::from(path.as_ref()))
     }
 }
 
-impl Entry for FileLabel {
-    fn size(&self) -> u32 {
-        self.0
+impl AsRef<u32> for PngEntry {
+    fn as_ref(&self) -> &u32 {
+        &self.0
     }
 }
 
-impl PartialEq for FileLabel {
-    fn eq(&self, other: &FileLabel) -> bool {
+impl PartialEq for PngEntry {
+    fn eq(&self, other: &PngEntry) -> bool {
         self.1 == other.1
     }
 }
@@ -317,10 +346,26 @@ impl From<DynamicImage> for SourceImage {
     }
 }
 
-impl<E: Entry + Debug + Eq> Display for Error<E> {
+impl<E: AsRef<u32>> Error<E> {
+    /// Converts `self` to a `Error<T>` using `f`.
+    pub fn map<T: AsRef<u32>, F: FnOnce(E) -> T>(
+        self,
+        f: F
+    ) -> Error<T> {
+        match self {
+            Error::AlreadyIncluded(e) => Error::AlreadyIncluded(f(e)),
+            Error::InvalidDimensions(size) => Error::InvalidDimensions(size),
+            Error::Io(err) => Error::Io(err),
+            Error::MismatchedDimensions(e, g) => Error::MismatchedDimensions(e, g),
+        }
+    }
+}
+
+impl<E: AsRef<u32> + Debug + Eq> Display for Error<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::AlreadyIncluded(_) => write!(f, "the icon already includes this entry"),
+            Error::InvalidDimensions(s) => write!(f, "{0}x{0} icons are not supported", s),
             Error::Io(err) => write!(f, "{}", err),
             Error::MismatchedDimensions(s, (w, h)) => write!(
                 f,
@@ -331,17 +376,18 @@ impl<E: Entry + Debug + Eq> Display for Error<E> {
     }
 }
 
-impl <E: Entry + Debug> Debug for Error<E> {
+impl <E: AsRef<u32> + Debug> Debug for Error<E> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Error::AlreadyIncluded(e) => write!(f, "Error::AlreadyIncluded({:?})", e),
+            Error::InvalidDimensions(s) => write!(f, "Error::InvalidDimensions({})", s),
             Error::Io(err) => write!(f, "Error::Io({:?})", err),
             Error::MismatchedDimensions(e, g) => write!(f, "Error::MismatchedDimensions({}, {:?})", e, g)
         }
     }
 }
 
-impl<E: Entry + Debug + Eq> error::Error for Error<E> {
+impl<E: AsRef<u32> + Debug + Eq> error::Error for Error<E> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         if let Error::Io(ref err) = self {
             Some(err)
@@ -351,13 +397,13 @@ impl<E: Entry + Debug + Eq> error::Error for Error<E> {
     }
 }
 
-impl<E: Entry> From<io::Error> for Error<E> {
+impl<E: AsRef<u32>> From<io::Error> for Error<E> {
     fn from(err: io::Error) -> Self {
         Error::Io(err)
     }
 }
 
-impl<E: Entry> Into<io::Error> for Error<E> {
+impl<E: AsRef<u32>> Into<io::Error> for Error<E> {
     fn into(self) -> io::Error {
         match self {
             Error::Io(err) => err,

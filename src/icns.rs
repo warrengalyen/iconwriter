@@ -7,7 +7,7 @@ use std::{
     io::{self, Write},
 };
 
-/// A collection of entries stored in a single `.icns` file.
+/// An encoder for the `.icns` file format.
 pub struct Icns {
     icon_family: icns::IconFamily,
     entries: Vec<IcnsEntry>,

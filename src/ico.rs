@@ -9,8 +9,8 @@ use std::{
     num::NonZeroU8
 };
 
-/// A collection of entries stored in a single `.ico` file.
 #[derive(Clone)]
+/// An encoder for the `.ico` file format.
 pub struct Ico {
     icon_dir: ico::IconDir,
     entries: Vec<NonZeroU8>,
@@ -18,6 +18,9 @@ pub struct Ico {
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct IcoEntry(NonZeroU8);
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct IcoEntry(u8);
 
 impl Icon<IcoEntry> for Ico {
     fn new() -> Self {
