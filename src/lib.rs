@@ -52,21 +52,6 @@
 //! ```
 //! 
 
-pub extern crate image;
-pub extern crate resvg;
-
-pub use resvg::{raqote, usvg};
-use crate::usvg::Tree;
-use image::{DynamicImage, GenericImageView};
-use std::{
-    convert::From,
-    error,
-    fmt::{self, Debug, Display, Formatter},
-    fs::File,
-    io::{self, Write},
-    path::{Path, PathBuf},
-};
-
 pub use crate::icns::Icns;
 pub use crate::ico::Ico;
 pub use crate::png_sequence::PngSequence;
@@ -83,18 +68,19 @@ const INVALID_DIM_ERR: &str =
     "a resampling filter returned an image of dimensions other than the ones specified by it's arguments";
 
 /// A generic representation of an icon encoder.
-pub trait Icon<E: AsRef<u32>> {
+pub trait Icon<E: Entry> {
     /// Creates a new icon.
-    /// 
+    ///
     /// # Example
-    /// ```rust, ignore
+    /// ```rust
     /// let icon = Ico::new();
     /// ```
     fn new() -> Self;
 
     /// Adds an individual entry to the icon.
-    /// 
+    ///
     /// # Arguments
+    ///
     /// * `filter` The resampling filter that will be used to re-scale `source`.
     /// * `source` A reference to the source image this entry will be based on.
     /// * `entry` Information on the target entry.
@@ -111,14 +97,14 @@ pub trait Icon<E: AsRef<u32>> {
     /// * Otherwise returns `Ok(())`.
     ///
     /// # Example
-    /// 
-    /// ```rust, ignore
+    ///
+    /// ```rust
     /// use iconwriter::{Ico, SourceImage, Icon};
     /// use iconwriter::Error as IconError;
     ///  
     /// fn example() -> Result<(), IconError> {
     ///     let icon = Ico::new();
-    /// 
+    ///
     ///     match SourceImage::from_path("image.svg") {
     ///         Some(img) => icon.add_entry(resample::linear, &img, 32),
     ///         None      => Ok(())
@@ -133,14 +119,15 @@ pub trait Icon<E: AsRef<u32>> {
     ) -> Result<(), Error<E>>;
 
     /// Adds a series of entries to the icon.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `filter` The resampling filter that will be used to re-scale `source`.
     /// * `source` A reference to the source image this entry will be based on.
     /// * `entries` A container for the information on the target entries.
     ///
     /// # Return Value
+    ///
     /// * Returns `Err(Error::InvalidDimensions(_))` if any of the items of `entries`
     ///   provides unsupported dimensions.
     /// * Returns `Err(Error::AlreadyIncluded(_))` if the icon already contains
@@ -151,14 +138,14 @@ pub trait Icon<E: AsRef<u32>> {
     /// * Otherwise returns `Ok(())`.
     ///
     /// # Example
-    /// 
-    /// ```rust, ignore
+    ///
+    /// ```rust
     /// use iconwriter::{Icns, SourceImage, Icon};
     /// use iconwriter::Error as IconError;
     ///  
-   /// fn example() -> Result<(), IconError> {
+    /// fn example() -> Result<(), IconError> {
     ///     let icon = Icns::new();
-    /// 
+    ///
     ///     match SourceImage::from_path("image.svg") {
     ///         Some(img) => icon.add_entries(
     ///             resample::linear,
@@ -183,18 +170,18 @@ pub trait Icon<E: AsRef<u32>> {
     }
 
     /// Writes the contents of the icon to `w`.
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust, ignore
+    ///
+    /// ```rust
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
     /// fn example() -> io::Result<()> {
     ///     let icon = PngSequence::new();
-    /// 
+    ///
     ///     /* Process the icon */
-    /// 
+    ///
     ///     let file = File::create("out.icns")?;
     ///     icon.write(file)
     /// }
@@ -202,18 +189,18 @@ pub trait Icon<E: AsRef<u32>> {
     fn write<W: Write>(&mut self, w: &mut W) -> io::Result<()>;
 
     /// Writes the contents of the icon to a file on disk.
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust, ignore
+    ///
+    /// ```rust
     /// use iconwriter::*;
     /// use std::{io, fs::File};
     ///  
     /// fn example() -> io::Result<()> {
     ///     let icon = Ico::new();
-    /// 
+    ///
     ///     /* Process the icon */
-    /// 
+    ///
     ///     icon.save("./output/out.ico")
     /// }
     /// ```
@@ -223,11 +210,9 @@ pub trait Icon<E: AsRef<u32>> {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-/// An _entry type_ for simple icons that only associate images
-/// with their dimensions. Usefull for icon formats such as the
-/// `.ico` and `.icns` file formats.
-pub struct Size(u32);
+pub trait Entry {
+    fn size(&self) -> u32;
+}
 
 #[derive(Clone, Debug, Eq, Hash)]
 /// An _entry type_ for icon formats that consist of a collection
@@ -237,7 +222,7 @@ pub struct Size(u32);
 pub struct FileLabel(u32, PathBuf);
 
 #[derive(Clone)]
-/// A unique type for raster and vector graphics.
+/// A uniun type for raster and vector graphics.
 pub enum SourceImage {
     /// A generic raster image.
     Raster(DynamicImage),
@@ -246,29 +231,20 @@ pub enum SourceImage {
 }
 
 /// The error type for operations of the `Icon` trait.
-pub enum Error<E: AsRef<u32>> {
+pub enum Error<E: Entry> {
     /// The `Icon` instance already includes this entry.
     AlreadyIncluded(E),
     /// Generic I/O error.
     Io(io::Error),
-    /// Unsupported dimensions were supplied to an `Icon`
-    /// operation.
-    InvalidDimensions(u32),
     /// A resampling filter produced results of dimensions
     /// other the ones specified by it's arguments.
     MismatchedDimensions(u32, (u32, u32)),
 }
 
-impl AsRef<u32> for Size {
-    fn as_ref(&self) -> &u32 {
-        &self.0
-    }
-}
-
 impl FileLabel {
     /// Creates a `NamedEntry` from a reference to a `Path`.
     /// # Example
-    /// ```rust, ignore
+    /// ```rust
     /// let entry = NamedEntry::from(32, &"icons/32/icon.png");
     /// ```
     pub fn from<P: AsRef<Path>>(size: u32, path: &P) -> Self {
@@ -276,9 +252,9 @@ impl FileLabel {
     }
 }
 
-impl AsRef<u32> for FileLabel {
-    fn as_ref(&self) -> &u32 {
-        &self.0
+impl Entry for FileLabel {
+    fn size(&self) -> u32 {
+        self.0
     }
 }
 
@@ -290,17 +266,17 @@ impl PartialEq for FileLabel {
 
 impl SourceImage {
     /// Attempts to create a `SourceImage` from a given path.
-    /// 
+    ///
     /// The `SourceImage::from::<image::DynamicImage>` and `SourceImage::from::<usvg::Tree>`
     /// methods should always be preferred.
-    /// 
+    ///
     /// # Return Value
-    /// * Returns `Some(src)` if the file indicated by the `path` argument could be 
+    /// * Returns `Some(src)` if the file indicated by the `path` argument could be
     ///   successfully parsed into an image.
     /// * Returns `None` otherwise.
-    /// 
+    ///
     /// # Example
-    /// ```rust, ignore
+    /// ```rust
     /// let img = SourceImage::open("source.png")?;
     /// ```
     pub fn open<P: AsRef<Path>>(path: P) -> Option<Self> {
@@ -317,7 +293,7 @@ impl SourceImage {
     pub fn width(&self) -> f64 {
         match self {
             SourceImage::Raster(ras) => ras.width() as f64,
-            SourceImage::Svg(svg) => svg.svg_node().view_box.rect.width()
+            SourceImage::Svg(svg) => svg.svg_node().view_box.rect.width(),
         }
     }
 
@@ -325,7 +301,7 @@ impl SourceImage {
     pub fn height(&self) -> f64 {
         match self {
             SourceImage::Raster(ras) => ras.height() as f64,
-            SourceImage::Svg(svg)    => svg.svg_node().view_box.rect.height()
+            SourceImage::Svg(svg) => svg.svg_node().view_box.rect.height(),
         }
     }
 
@@ -347,33 +323,31 @@ impl From<DynamicImage> for SourceImage {
     }
 }
 
-impl<E: AsRef<u32> + Debug + Eq> Display for Error<E> {
+impl<E: Entry + Debug + Eq> Display for Error<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::AlreadyIncluded(_) => write!(f, "the icon already includes this entry"),
-            Error::InvalidDimensions(s) => write!(f, "{0}x{0} icons are not supported", s),
             Error::Io(err) => write!(f, "{}", err),
             Error::MismatchedDimensions(s, (w, h)) => write!(
                 f,
-                "{0}: expected {1}x{1}, and received {2}x{3}",
+                "{0}: expected {1}x{1}, got {2}x{3}",
                 INVALID_DIM_ERR, s, w, h
             ),
         }
     }
 }
 
-impl <E: AsRef<u32> + Debug> Debug for Error<E> {
+impl <E: Entry + Debug> Debug for Error<E> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Error::AlreadyIncluded(e) => write!(f, "Error::AlreadyIncluded({:?})", e),
-            Error::InvalidDimensions(s) => write!(f, "Error::InvalidDimensions({})", s),
             Error::Io(err) => write!(f, "Error::Io({:?})", err),
             Error::MismatchedDimensions(e, g) => write!(f, "Error::MismatchedDimensions({}, {:?})", e, g)
         }
     }
 }
 
-impl<E: AsRef<u32> + Debug + Eq> error::Error for Error<E> {
+impl<E: Entry + Debug + Eq> error::Error for Error<E> {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         if let Error::Io(ref err) = self {
             Some(err)
@@ -383,13 +357,13 @@ impl<E: AsRef<u32> + Debug + Eq> error::Error for Error<E> {
     }
 }
 
-impl<E: AsRef<u32>> From<io::Error> for Error<E> {
+impl<E: Entry> From<io::Error> for Error<E> {
     fn from(err: io::Error) -> Self {
         Error::Io(err)
     }
 }
 
-impl<E: AsRef<u32>> Into<io::Error> for Error<E> {
+impl<E: Entry> Into<io::Error> for Error<E> {
     fn into(self) -> io::Error {
         match self {
             Error::Io(err) => err,
