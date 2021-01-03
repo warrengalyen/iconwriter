@@ -81,7 +81,7 @@ impl Favicon {
     /// 
     /// # Example
     /// 
-    /// ```rust
+    /// ```rust, ignore
     /// let fav = Favicon::new().apple_touch(true);
     /// ```
     /// 
@@ -104,7 +104,7 @@ impl Favicon {
     /// 
     /// # Example
     /// 
-    /// ```rust
+    /// ```rust, ignore
     /// let fav = Favicon::new().web_app(true);
     /// ```
     /// 
