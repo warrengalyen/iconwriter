@@ -22,10 +22,9 @@
 //! ## General Usage
 //! 
 //! ```rust, ignore
-//! use iconwriter::{Ico, SourceImage, Icon};
-//! use iconwriter::Error as IconError;
+//! use iconwriter::{Ico, SourceImage, Icon, Error};
 //!  
-//! fn example() -> Result<(), IconError> {
+//! fn example() -> Result<(), Error> {
 //!     let icon = Ico::new();
 //! 
 //!     match SourceImage::from_path("image.svg") {
@@ -52,13 +51,10 @@
 //! ```
 //! 
 
-pub use crate::icns::Icns;
-pub use crate::ico::Ico;
-pub use crate::png_sequence::PngSequence;
-
-mod icns;
-mod ico;
-mod png_sequence;
+pub mod icns;
+pub mod ico;
+pub mod favicon;
+pub mod png_sequence;
 pub mod resample;
 #[cfg(test)]
 mod test;
@@ -99,10 +95,9 @@ pub trait Icon<E: Entry> {
     /// # Example
     ///
     /// ```rust
-    /// use iconwriter::{Ico, SourceImage, Icon};
-    /// use iconwriter::Error as IconError;
+    /// use iconwriter::{Ico, SourceImage, Icon, Error};
     ///  
-    /// fn example() -> Result<(), IconError> {
+    /// fn example() -> Result<(), Error> {
     ///     let icon = Ico::new();
     ///
     ///     match SourceImage::from_path("image.svg") {
@@ -140,10 +135,9 @@ pub trait Icon<E: Entry> {
     /// # Example
     ///
     /// ```rust
-    /// use iconwriter::{Icns, SourceImage, Icon};
-    /// use iconwriter::Error as IconError;
+    /// use iconwriter::{Icns, SourceImage, Icon, Error};
     ///  
-    /// fn example() -> Result<(), IconError> {
+    /// fn example() -> Result<(), Error> {
     ///     let icon = Icns::new();
     ///
     ///     match SourceImage::from_path("image.svg") {
