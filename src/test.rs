@@ -54,10 +54,10 @@ fn test_ico() {
         panic!("{:?}", err);
     }
 
-    // Should fail
-    if let Ok(_) = icon.add_entry(resample::nearest, &img, ico::Key(32)) {
-        panic!("Should fail.");
-    }
+    // // Should fail
+    // if let Ok(_) = icon.add_entry(resample::nearest, &img, ico::Key(32)) {
+    //     panic!("Should fail.");
+    // }
 
     if let Err(err) = icon.write(&mut file) {
         panic!("{:?}", err);

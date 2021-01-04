@@ -3,9 +3,9 @@
 [![API](https://docs.rs/iconwriter/badge.svg)](https://docs.rs/iconwriter)
 ![Minimum rustc version](https://img.shields.io/badge/rustc-1.37+-lightgray.svg)
 
-A simple solution for encoding common icon file-formats, such as `.ico` and `.icns`. 
+A simple solution for encoding common icon file-formats, such as `.ico`, `.icns` and _favicon_. 
 
-This crate is mostly a wrapper for other libraries, unifying existing APIs into a single, cohesive 
+This crate is mostly a wrapper for other libraries, unifying existing APIs into a single, cohesive
 interface.
 
 # Overview
@@ -13,15 +13,37 @@ interface.
 An _icon_ consists of a map between _entries_ and _images_. An _entry_ is simply the _key type_ of
 an _icon_.
 
-For example, _icon_ formats that only differenciate _images_ by their dimensions, such as the `.ico`
-and `.icns` file formats, are maps between _positive integers_ and _image buffers_. On the other
-hand, more complex _icon_ formats, such as _[favicons](https://en.wikipedia.org/wiki/Favicon)_ and
-_[FreeDesktop icon themes](https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html)_
-, are maps _file paths_ and _positive integers_ to _image buffers_.
+**IconWriter** simply automates the process of re-scaling _images_, creating _entries_ and combining
+them into an _icon_.
 
-Note that every _entry_ must be convertible to a _posit integers_, since the dimensions
-of the _images_ contained in an _icon_ are dictated by their associated _entries_. Therefore, all
-_entry types_ are required to implement `AsRef<u32>`.
+## Keys
+
+Each _icon_ format is associated with a particular _key type_, which determines how
+_entries_ are labeled. Each _key_ can only be associated with a single _image_.
+
+For example, _icon_ formats that only differentiate _entries_ by the dimensions of their associated
+_images_ are labeled by _positive integers_, such as the `.ico` and `.icns` file-formats.
+
+On the other hand, _icon_ formats that distinguish their _entries_ by 
+_[path](https://en.wikipedia.org/wiki/Path_%28computing%29)_, such as _png sequeces_ and
+_[FreeDesktop icon themes](https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html)_
+, are labeled by _path_.
+
+Note that, since the dimensions
+of the _images_ contained in an _entry_ are dictated by their associated _entries_, every _key_
+must be convertible to a _positive integers_. Therefore, all _key types_ are required to implement
+`AsRef<u32>`.
+
+## Resampling
+
+Pictures are scaled using resampling filters, which are represented by _functions that take a source_ 
+_image and a size and return a re-scaled image_.
+
+This allows the users of this crate to provide their custom resampling filters. Common resampling 
+filters are provided in the 
+[`resample`](https://docs.rs/iconwriter/1.7.0/iconwriter/resample/index.html) module.
+
+# Examples
 
 **IconWriter** simply automates the process of re-scaling pictures and combining them into an _icon_.
 
@@ -34,32 +56,51 @@ Resampling filters are represented by functions that take a source image and a s
 
 ### General Usage
 
+The `Icon::add_entry` can be used to automatically resample
+_source images_ and converts them to _entries_ in an icon.
+
 ```rust
-use iconwriter::{Ico, SourceImage, Icon};
-use iconwriter::Error as IconError;
- 
+use iconwriter::{Ico, Image, Icon, IconError};
+
 fn example() -> Result<(), IconError> {
     let icon = Ico::new();
-    match SourceImage::from_path("image.svg") {
-        Some(img) => icon.add_entry(resample::linear, &img, 32),
-        None      => Ok(())
-    }
+    let src = Image::open("image.svg")?;
+    icon.add_entry(resample::linear, &img, 32)
 }
 ```
 
-## Writing to a File
+## Writing to Disk
+
+Implementors of the `Icon` trait can be written to any object
+that implements `io::Write` with the `Icon::write` method.
 
 ```rust
-use iconwriter::*;
+use iconwriter::favicon::Favicon;
 use std::{io, fs::File};
  
 fn example() -> io::Result<()> {
-    let icon = PngSequence::new();
+    let icon = Favicon::new();
 
-    /* Process the icon */
+    // Process the icon ...
 
     let file = File::create("out.icns")?;
     icon.write(file)
+}
+```
+
+Alternatively, icons can be directly written to a file on
+disk with `Icon::save` method.
+
+```rust
+use iconwriter::favicon::Favicon;
+use std::{io, fs::File};
+ 
+fn example() -> io::Result<()> {
+    let icon = Favicon::new();
+
+    /* Process the icon */
+
+    icon.save("./output/")
 }
 ```
 
@@ -68,11 +109,11 @@ fn example() -> io::Result<()> {
 ## Icon Formats
 
 This are the output formats **IconWriter** nativally supports. Be aware that custum output types can 
-be created using the [`Icon`](https://docs.rs/iconwriter/2.2.0/iconwriter/trait.Icon.html) trait.
+be created using the [`Icon`](https://docs.rs/iconwriter/1.7.0/iconwriter/trait.Icon.html) trait.
 
 * `ico`
 * `icns`
-* `png` sequence (`tar`)
+* _favicon_
 
 ### Icns Support
 

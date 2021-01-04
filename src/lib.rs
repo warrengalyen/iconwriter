@@ -46,13 +46,13 @@
 //! _source images_ and converts them to _entries_ in an icon.
 //!
 //! ```rust, ignore
-//! use iconwriter::{ico::{Ico, Key}, Image, Icon, Error};
-//!   
-//! fn example() -> Result<(), Error> {
+//! use iconwriter::{Ico, Image, Icon, IconError};
+//! 
+//! fn example() -> Result<(), IconError> {
 //!     let icon = Ico::new();
 //!     let src = Image::open("image.svg")?;
 //!
-//!     icon.add_entry(resample::linear, &img, Key(32))
+//!     icon.add_entry(resample::linear, &img, 32)
 //! }
 //! ```
 //!
