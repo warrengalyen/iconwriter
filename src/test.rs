@@ -3,11 +3,12 @@ use crate::{
     favicon::{self, Favicon},
     icns::{self, Icns},
     ico::{self, Ico},
-    resample, Icon, Image,
+    resample, Icon, Image, Encoded
 };
 use std::{
     fs::File,
-    io::{self, BufWriter},
+    io::{self, BufWriter, Write},
+    convert::TryFrom,
     path::Path,
 };
 
@@ -19,12 +20,29 @@ fn test_resample() -> io::Result<()> {
     let mut file_svg = File::create("tests/test_svg.png").expect("Couldn't create file");
 
     let hydra = Image::open("tests/hydra.png").expect("File not found");
-    let box_svg = Image::open("tests/test.svg").expect("File not found");
+    let box_svg = Image::open("tests/box.svg").expect("File not found");
 
-    hydra.apply(resample::nearest, 32).expect("Failed").write(&mut file_near)?;
-    hydra.apply(resample::linear, 32).expect("Failed").write(&mut file_linear)?;
-    hydra.apply(resample::cubic, 32).expect("Failed").write(&mut file_cubic)?;
-    png(&box_svg.rasterize(resample::nearest, 32).expect("Failed"), &mut file_svg)?;
+    if let Encoded::Png(buf) = hydra.apply(resample::nearest, 32).map_err(|err| err.into())?.encode()? {
+        file_near.write_all(buf.as_ref())?;
+    } else {
+        panic!("No worky");
+    }
+
+    if let Encoded::Png(buf) = hydra.apply(resample::linear, 32).map_err(|err| err.into())?.encode()? {
+        file_linear.write_all(buf.as_ref())?;
+    } else {
+        panic!("No worky");
+    }
+
+    if let Encoded::Png(buf) = hydra.apply(resample::cubic, 32).map_err(|err| err.into())?.encode()? {
+        file_cubic.write_all(buf.as_ref())?;
+    } else {
+        panic!("No worky");
+    }
+
+    if let Encoded::Png(buf) = Encoded::try_from(box_svg.rasterize(resample::nearest, 32).map_err(|err| err.into())?)? {
+
+    }
 
     Ok(())
 }
@@ -48,9 +66,9 @@ fn test_ico() {
     }
 
     // Should fail
-    // if let Ok(_) = icon.add_entry(resample::nearest, &img, ico::Key(32)) {
-    //     panic!("Should fail.");
-    // }
+    if let Ok(_) = icon.add_entry(resample::nearest, &img, ico::Key(32)) {
+        panic!("Should fail.");
+    }
 
     if let Err(err) = icon.write(&mut file) {
         panic!("{:?}", err);
@@ -104,7 +122,7 @@ fn test_favicon() {
 /*fn test_png() {
     let mut file = File::create("tests/test.tar").expect("Couldn't create file");
     let mut icon = PngSequence::new();
-    let img = SourceImage::open("tests/hydra.png").expect("File not found");
+    let img = Image::open("tests/hydra.png").expect("File not found");
     let entries = vec![
         PngKey::from(32, "32/icon.png").unwrap(),
         PngKey::from(64, "64/icon.png").unwrap(),
